@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 RUN_FORMAT = "mini-swe-agent-1"
+TASK_START = "<pr_description>"
 TASK_END = "</pr_description>"
 # The submit word named in the instructions tells the two instruction wordings apart.
 OLDER_SUBMIT_WORD = "MINI_SWE_AGENT_FINAL_OUTPUT"
@@ -73,6 +74,7 @@ class Run:
     steps: tuple[Step, ...]
     cost: float | None = None  # the model's cost for this run in dollars (info.model_stats)
     api_calls: int | None = None
+    task: str = ""  # the bug report the agent was given, without the instructions around it
 
 
 def load_labels(model_dir: str | Path) -> dict[str, bool]:
@@ -123,6 +125,7 @@ def load_run(path: str | Path, labels: dict[str, bool]) -> Run:
         submitted=exit_status == "Submitted",
         submission=submission,
         wording=instruction_wording(task, path),
+        task=task.split(TASK_END, 1)[0].split(TASK_START, 1)[-1].strip(),
         # .get, not [...]: a bug missing from the results file is unknown (None), not "not fixed".
         resolved=labels.get(instance_id),
         steps=parse_steps(messages, exit_status, submission, path),

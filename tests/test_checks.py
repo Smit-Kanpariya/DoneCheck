@@ -108,11 +108,23 @@ def test_check_run_on_a_fake_run():
         "edited_files": 1, "edited_unopened": 0}
     # "the tests pass" after a passing rerun is supported; the submit note's "All tests pass." follows a failed run
     assert (f["claims"], f["claims_supported"], f["claims_contradicted"]) == (2, 1, 1)
+    assert f["final_claims_contradicted"] == 1  # both claims come after the last edit (step 3)
     assert (f["submission_empty"], f["diff_files"], f["diff_scratch_files"], f["gave_up"]) == (False, 1, 0, False)
 
     empty = check_run(fake_run([step("python repro.py")], ""))
     assert (empty["submission_empty"], empty["code_edits"], empty["checks_after_last_edit"]) == (True, 0, 1)
     assert empty["claims"] == 0  # claims only count after a code edit
+
+
+def test_only_claims_after_the_last_edit_are_final():
+    fix = "diff --git a/pkg/x.py b/pkg/x.py\n--- a/pkg/x.py\n+++ b/pkg/x.py\n@@ -1 +1 @@\n-a\n+b\n"
+    f = check_run(fake_run([
+        step("sed -i 's/a/c/' pkg/x.py"),
+        step("pytest -q", "1 failed in 0.10s\n", 1),
+        step("sed -i 's/c/b/' pkg/x.py", note="THOUGHT: The tests pass."),  # false, but the agent kept working
+        step("pytest -q", "2 passed in 0.10s\n"),
+    ], fix))
+    assert (f["claims"], f["claims_contradicted"], f["claims_supported"], f["final_claims_contradicted"]) == (2, 1, 1, 0)
 
 
 @needs_data

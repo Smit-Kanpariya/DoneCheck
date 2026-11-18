@@ -11,3 +11,7 @@ wheels/
 
 # Downloaded run data: no licence is stated for the run files, so link to them and never commit copies
 data/
+
+# Re-created by the code: run files, judge prompts (they quote run files)
+data_final/
+eval/judges/

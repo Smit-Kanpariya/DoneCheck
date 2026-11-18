@@ -400,8 +400,8 @@ def read_events(run: Run, is_code) -> tuple[list[Event], list[tuple[int, str]]]:
     return events, texts
 
 
-def claim_labels(run: Run, code_edits: list[Event], checks: list[Event]) -> list[str]:
-    """A label for each claim in the notes after the first code edit (docs/claims.md, section 3):
+def claim_labels(run: Run, code_edits: list[Event], checks: list[Event]) -> list[tuple[int, str]]:
+    """(step, label) for each claim in the notes after the first code edit (docs/claims.md, section 3):
     supported when the last check since the last edit before the claim passed, contradicted when
     it failed or when no check ran at all, unsupported otherwise."""
     labels = []
@@ -422,7 +422,7 @@ def claim_labels(run: Run, code_edits: list[Event], checks: list[Event]) -> list
             label = "unsupported"
         else:
             label = {"passed": "supported", "failed": "contradicted"}.get(fresh[-1].result, "unsupported")
-        labels += [label] * len(claims)
+        labels += [(s, label)] * len(claims)
     return labels
 
 
@@ -453,7 +453,10 @@ def check_run(run: Run) -> dict:
         for t, _ in e.edits:
             first_edit.setdefault(t, e.step)
     modified = [p for p, status in final.items() if status == "modified"]
-    claims = claim_labels(run, code_edits, checks)
+    labelled = claim_labels(run, code_edits, checks)
+    claims = [label for _, label in labelled]
+    # Claims the agent stands behind at submission: made after its last code edit (docs/claims.md, section 4).
+    final_claims = [label for s, label in labelled if s > code_edits[-1].step] if code_edits else []
     submit_note = run.steps[-1].note if run.submitted and run.steps else ""
     return {
         "steps": len(run.steps),
@@ -481,6 +484,7 @@ def check_run(run: Run) -> dict:
         "claims_supported": claims.count("supported"),
         "claims_unsupported": claims.count("unsupported"),
         "claims_contradicted": claims.count("contradicted"),
+        "final_claims_contradicted": final_claims.count("contradicted"),
         "gave_up": bool(GAVE_UP.search(submit_note)),
     }
 

@@ -176,7 +176,7 @@ def test_fake_run_loads_and_a_missing_result_is_none(tmp_path):
     run = load_run(write_fake_run(tmp_path), labels={})
     assert run == Run(instance_id="fake__fake-1", model="fake-model", agent_version="1.7.0",
                       exit_status="Submitted", submitted=True, submission="", wording="newer", resolved=None,
-                      steps=(Step(2, "THOUGHT: done.", "submitted", SUBMIT, None, "", 0),))
+                      steps=(Step(2, "THOUGHT: done.", "submitted", SUBMIT, None, "", 0),), task="A bug.")
 
 
 @pytest.mark.parametrize("bad", [
