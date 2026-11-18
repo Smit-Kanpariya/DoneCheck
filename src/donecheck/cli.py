@@ -3,7 +3,7 @@
     donecheck verify RUN.traj.json          accept or flag one submitted run, with its evidence
     donecheck reproduce                     download the data, rebuild every result and compare
     donecheck labels check|report           the hand-labelling sheet; its analysis once complete
-    donecheck judges prompts|score SPLIT    AI-judge prompts; judge scores once answers exist
+    donecheck judges prompts|run|score SPLIT, judges freeze MODEL   the AI-judge baselines
     donecheck fetch building|final DIR      download the public run files
     donecheck evaluate building|final       rebuild eval/results/ (final runs once)
 """
@@ -191,6 +191,12 @@ def judges_run(split: str, judge: str, endpoint: str, model: str, local: bool = 
     """Send one judge's prompts to an OpenAI-compatible endpoint (key from JUDGE_API_KEY). Needs --local
     for a free local server, or both prices and --max-usd. Resumes where it stopped."""
     typer.echo(json.dumps(judging.run(split, judge, endpoint, model, local, usd_per_mtok_in, usd_per_mtok_out, max_usd)))
+
+
+@judges_app.command("freeze")
+def judges_freeze(model: str, endpoint: str = "http://localhost:11434") -> None:
+    """Before GLM-4.5: record the local judge model and the thresholds from the building sample."""
+    typer.echo(json.dumps(judging.freeze(model, endpoint), indent=1))
 
 
 @judges_app.command("score")

@@ -2,6 +2,7 @@
 
 import csv
 import json
+from pathlib import Path
 
 import pytest
 
@@ -130,3 +131,57 @@ def test_judge_score_compares_on_the_same_runs(tmp_path, monkeypatch):
     assert out["task_diff"] == "pending: no answers yet"
     assert out["notes"]["runs"] == 8 and out["notes"]["judge"]["auroc"] == 1.0
     assert out["notes"]["donecheck_same_runs"]["auroc"] == 0.5
+
+
+def test_judge_run_retries_a_failed_call(prompts, monkeypatch):
+    monkeypatch.setattr(judging.time, "sleep", lambda s: None)
+    judge, failures = FakeJudge(), [OSError("connection refused")]
+
+    def flaky(endpoint, model, prompt):
+        if failures:
+            raise failures.pop()
+        return judge(endpoint, model, prompt)
+    assert judging.run("building", "notes", "http://localhost:1/v1", "m", local=True, send=flaky)["sent"] == 3
+    assert all("seconds" in a for a in judging.judges.read_answers("eval/judges/answers_notes_building.jsonl").values())
+
+
+def test_the_final_split_needs_a_frozen_judge(prompts):
+    with pytest.raises(SystemExit, match="freeze the judge setup"):
+        judging.run("final", "notes", "http://localhost:1/v1", "m", local=True, send=FakeJudge())
+    judging.FREEZE.write_text(json.dumps({"judge_model": "other"}))
+    with pytest.raises(SystemExit, match="must name 'm'"):
+        judging.run("final", "notes", "http://localhost:1/v1", "m", local=True, send=FakeJudge())
+
+
+def test_freeze_refuses_after_final_answers_or_with_too_many_non_answers(prompts):
+    building = {j: {"judge_models": ["m"], "runs": 200, "no_answer": 11, "max_input_tokens": 9, "threshold_at_5": 0.9}
+                for j in ("notes", "task_diff")}
+    (Path("eval/results")).mkdir(parents=True)
+    Path("eval/results/judges_building.json").write_text(json.dumps(building))
+    with pytest.raises(SystemExit, match="no usable answer on 11 of 200"):
+        judging.freeze("m", "http://localhost:1")
+    Path("eval/judges/answers_notes_final.jsonl").write_text("")
+    with pytest.raises(SystemExit, match="can no longer be frozen"):
+        judging.freeze("m", "http://localhost:1")
+
+
+@pytest.mark.filterwarnings("ignore")  # 8 runs: some resamples hold one class
+def test_final_scores_read_each_checker_at_its_fixed_threshold(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    for d in ("eval/results", "eval/judges", "models"):
+        (tmp_path / d).mkdir(parents=True)
+    Path("models/donecheck-v1.json").write_text(json.dumps({"threshold": 0.5}))
+    judging.FREEZE.write_text(json.dumps({"judge_model": "j", "digest": "d", "runtime": "r", "frozen_at": "t",
+                                          "thresholds": {"notes": 0.8, "task_diff": None}}))
+    write_tsv("eval/results/final_glm45_predictions.tsv", ["model", "instance_id", "false_done", "score"],
+              [["m", f"b-{i}", int(i < 4), 0.9 if i in (0, 4) else 0.1] for i in range(8)])
+    for judge in ("notes", "task_diff"):
+        with open(f"eval/judges/answers_{judge}_final.jsonl", "w") as fh:
+            for i in range(8):
+                fh.write(json.dumps({"model": "m", "instance_id": f"b-{i}", "answer": f'{{"p_not_fixed": {90 if i < 2 else 10}}}',
+                                     "judge_model": "j", "cost_usd": 0.0, "seconds": 2.0, "input_tokens": 100 + i}) + "\n")
+    out = judging.score("final")
+    assert out["notes"]["judge"]["fixed_threshold"] == {"catch": 0.5, "false_alarm": 0.0, "flagged": 0.25}
+    assert out["task_diff"]["judge"]["threshold"] is None and out["task_diff"]["judge"]["fixed_threshold"]["catch"] == 0.0
+    assert out["notes"]["donecheck_same_runs"]["fixed_threshold"] == {"catch": 0.25, "false_alarm": 0.25, "flagged": 0.25}
+    assert out["notes"]["seconds_per_run"] == 2.0 and out["notes"]["max_input_tokens"] == 107
