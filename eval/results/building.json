@@ -5,7 +5,7 @@
   "left_out": {
    "not submitted": 87
   },
-  "seconds_to_load_and_check_per_run": 0.0027872905836004067,
+  "seconds_to_load_and_check_per_run": 0.0028076379999984057,
   "by_model": {
    "deepseek-v3.2-reasoner": {
     "runs": 498,
@@ -623,12 +623,12 @@
  },
  "cost": {
   "donecheck_api_usd_per_run": 0.0,
-  "donecheck_seconds_per_run": 0.0027872905836004067,
+  "donecheck_seconds_per_run": 0.0028076379999984057,
   "agent_usd_per_run_mean": 0.20868862573974306
  },
  "provenance": {
-  "commit": "43452bf6fd0d1a81d2632dc2199572abbf5c13c6",
-  "uncommitted_changes": true,
+  "commit": "26c97f2d2bbcb9c1f28a932ef5c47719524716e8",
+  "uncommitted_changes": false,
   "python": "3.13.18",
   "numpy": "2.5.5",
   "scikit_learn": "1.9.1"
