@@ -55,6 +55,19 @@ def card(group: str, case: dict, entry: str) -> str:
             f"<blockquote>{html.escape(note)}</blockquote><a href='{url}'>full run file</a></article>")
 
 
+def judge_sentence(path: Path = Path("eval/results/judges_final.json")) -> str:
+    """One sentence on the AI judges on GLM-4.5, each read at its threshold fixed on building data."""
+    if not path.exists():
+        return "The AI-judge baselines have frozen prompts but have not been run yet."
+    j = json.loads(path.read_text())
+    parts = [f"reading {what}, it caught {pct(j[k]['judge']['fixed_threshold']['catch'])} with "
+             f"{pct(j[k]['judge']['fixed_threshold']['false_alarm'])} false alarms (AUROC {j[k]['judge']['auroc']:.3f}, "
+             f"about {j[k]['seconds_per_run']:.0f} s per run)"
+             for k, what in (("notes", "only the agent's notes"), ("task_diff", "the bug report and the change"))]
+    return (f"A free local AI judge ({html.escape(j['judge_freeze']['judge_model'])}, run on a laptop), at a threshold fixed "
+            f"in advance on building data the same way: " + "; ".join(parts) + ".")
+
+
 def main() -> None:
     artifact = json.loads(Path("models/donecheck-v1.json").read_text())
     final = json.loads(Path("eval/results/final_glm45.json").read_text())
@@ -81,7 +94,7 @@ def main() -> None:
         auroc=f"{d['auroc']:.3f}", auroc_lo=f"{d['auroc_95'][0]:.3f}", auroc_hi=f"{d['auroc_95'][1]:.3f}",
         roc=pct(d["roc_catch_at_5"]), ms=f"{1000 * final['cost']['donecheck_seconds_per_run']:.1f}",
         agent_cost=f"{final['cost']['agent_usd_per_run_mean']:.3f}", folds=folds, counts=counts, cards=cards,
-        commit=final["freeze"]["commit"][:7]), encoding="utf-8")
+        commit=final["freeze"]["commit"][:7], judges=judge_sentence()), encoding="utf-8")
     print(f"wrote {OUT}")
 
 
@@ -106,7 +119,7 @@ a{{color:inherit}} .small{{font-size:13px;color:var(--muted)}}
 Trusting the agent catches 0%.</p>
 <p>The threshold was frozen on building data to aim for at most 5% false alarms on a new model; on GLM-4.5 it turned out stricter.
 AUROC {auroc} ({auroc_lo} to {auroc_hi}). Had the threshold been picked on GLM-4.5 itself for at most 5% false alarms, it would have caught {roc}:
-that is a point on the curve, not a result anyone could have had in advance. The AI-judge baselines have frozen prompts but have not been run (no API budget yet).
+that is a point on the curve, not a result anyone could have had in advance. {judges}
 The agent itself spent ${agent_cost} per run on average.</p>
 <h2>Building data, one model left out at a time</h2>
 <table><tr><th>Left-out model</th><th>AUROC</th><th>Caught</th><th>False alarms</th></tr>{folds}</table>
