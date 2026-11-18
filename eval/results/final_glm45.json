@@ -1,0 +1,322 @@
+{
+ "population": {
+  "runs": 500,
+  "scored": 500,
+  "left_out": {},
+  "seconds_to_load_and_check_per_run": 0.0026210525000060444,
+  "false_done": 229,
+  "by_wording": {
+   "newer": 500
+  }
+ },
+ "freeze": {
+  "frozen_at": "2026-11-17T22:27:30-0400",
+  "commit": "9c1ca3d077039fc11f928aa4d10c13f62d320af9",
+  "uncommitted_changes": false,
+  "python": "3.13.18",
+  "numpy": "2.5.5",
+  "scikit_learn": "1.9.1",
+  "files_sha256": {
+   "src/donecheck/loader.py": "52e76063e5deea9d5e5ab9a375aa789e536ee649058773f620e19e1cfba26001",
+   "src/donecheck/checks.py": "dcdd36d7f0a7587b5ef0b96367340a664cf38c24a6fcaea262bde4465a8894a6",
+   "src/donecheck/model.py": "b3cda362b299c96d653e83224083750071b2fe35aa41f15928b652ecc503632a",
+   "src/donecheck/scoring.py": "739c90b55559365c8edf9897e99db0fca953ba1ad1557d20895f78ffc1c43e4c",
+   "src/donecheck/evaluate.py": "a5e453a84fa6ec38dc915d05ea6fd5c04b96b9f6055167cf2517befc8ea7a63d",
+   "src/donecheck/judges.py": "4c11c9af14e43e86f7bc4c509ecdf96bc14e18c3d1a0caa2b021d5cdef2db3b2",
+   "models/donecheck-v1.json": "be90f9f759241f5ed1f35de01a9323a29b183aca4f0e9377978af9d5604fe817"
+  },
+  "threshold": 0.7872814420115419,
+  "threshold_rule": "5% false-alarm point of the building models' leave-one-model-out scores (model.choose_threshold)",
+  "false_alarm_target": 0.05,
+  "bootstrap": {
+   "resamples": 2000,
+   "seed": 20261117,
+   "grouped_by": "bug id"
+  },
+  "judge_prompt_version": "judges-v1",
+  "final_test_entries": [
+   "20250822_mini-v1.9.1_glm-4.5"
+  ]
+ },
+ "headline": "donecheck.fixed_threshold: the frozen building-data threshold applied once to GLM-4.5",
+ "donecheck": {
+  "runs": 500,
+  "false_done": 229,
+  "fixed": 271,
+  "auroc": 0.665358771491645,
+  "auroc_95": [
+   0.6202557143773934,
+   0.7130164787107497
+  ],
+  "roc_catch_at_5": 0.2096069868995633,
+  "roc_catch_at_5_95": [
+   0.14666379310344826,
+   0.2898565948118378
+  ],
+  "threshold": 0.7872814420115419,
+  "fixed_threshold": {
+   "catch": 0.13100436681222707,
+   "false_alarm": 0.007380073800738007,
+   "flagged": 0.064
+  },
+  "fixed_threshold_catch_95": [
+   0.08860479444382212,
+   0.17647649421214268
+  ],
+  "fixed_threshold_false_alarm_95": [
+   0.0,
+   0.018869711263579177
+  ]
+ },
+ "donecheck_without_gave_up": {
+  "runs": 496,
+  "false_done": 226,
+  "fixed": 270,
+  "auroc": 0.6630203212061619,
+  "auroc_95": [
+   0.6150712567415925,
+   0.709864679726242
+  ],
+  "roc_catch_at_5": 0.22123893805309736,
+  "roc_catch_at_5_95": [
+   0.14169956140350878,
+   0.28340713562753034
+  ],
+  "threshold": 0.7872814420115419,
+  "fixed_threshold": {
+   "catch": 0.12831858407079647,
+   "false_alarm": 0.003703703703703704,
+   "flagged": 0.06048387096774194
+  },
+  "fixed_threshold_catch_95": [
+   0.08837209302325581,
+   0.17391304347826086
+  ],
+  "fixed_threshold_false_alarm_95": [
+   0.0,
+   0.011627906976744186
+  ]
+ },
+ "trust_the_agent": {
+  "runs": 500,
+  "false_done": 229,
+  "fixed": 271,
+  "auroc": 0.5,
+  "auroc_95": [
+   0.5,
+   0.5
+  ],
+  "roc_catch_at_5": 0.0,
+  "roc_catch_at_5_95": [
+   0.0,
+   0.0
+  ],
+  "flags": "nothing",
+  "catch": 0.0,
+  "false_alarm": 0.0
+ },
+ "calibration": {
+  "brier": 0.22429246605485478,
+  "bands": [
+   {
+    "band": "0.1-0.2",
+    "runs": 23,
+    "mean_score": 0.17169170620465407,
+    "false_done_rate": 0.17391304347826086
+   },
+   {
+    "band": "0.2-0.3",
+    "runs": 31,
+    "mean_score": 0.2513323342870799,
+    "false_done_rate": 0.3225806451612903
+   },
+   {
+    "band": "0.3-0.4",
+    "runs": 112,
+    "mean_score": 0.3547843573346507,
+    "false_done_rate": 0.3392857142857143
+   },
+   {
+    "band": "0.4-0.5",
+    "runs": 142,
+    "mean_score": 0.4405654996086122,
+    "false_done_rate": 0.4154929577464789
+   },
+   {
+    "band": "0.5-0.6",
+    "runs": 95,
+    "mean_score": 0.5425084602915443,
+    "false_done_rate": 0.5578947368421052
+   },
+   {
+    "band": "0.6-0.7",
+    "runs": 45,
+    "mean_score": 0.6443643579378646,
+    "false_done_rate": 0.5111111111111111
+   },
+   {
+    "band": "0.7-0.8",
+    "runs": 21,
+    "mean_score": 0.743702668062804,
+    "false_done_rate": 0.6190476190476191
+   },
+   {
+    "band": "0.8-0.9",
+    "runs": 13,
+    "mean_score": 0.831269888104295,
+    "false_done_rate": 0.9230769230769231
+   },
+   {
+    "band": "0.9-1.0",
+    "runs": 18,
+    "mean_score": 0.9784681948109163,
+    "false_done_rate": 0.9444444444444444
+   }
+  ]
+ },
+ "accept_flag_curve": [
+  {
+   "target_flagged": 0,
+   "catch": 0.0,
+   "false_alarm": 0.0,
+   "flagged": 0.0,
+   "false_done_among_accepted": 0.458
+  },
+  {
+   "target_flagged": 0.05,
+   "catch": 0.10480349344978165,
+   "false_alarm": 0.0036900369003690036,
+   "flagged": 0.05,
+   "false_done_among_accepted": 0.43157894736842106
+  },
+  {
+   "target_flagged": 0.1,
+   "catch": 0.17903930131004367,
+   "false_alarm": 0.033210332103321034,
+   "flagged": 0.1,
+   "false_done_among_accepted": 0.4177777777777778
+  },
+  {
+   "target_flagged": 0.15,
+   "catch": 0.2445414847161572,
+   "false_alarm": 0.07011070110701106,
+   "flagged": 0.15,
+   "false_done_among_accepted": 0.40705882352941175
+  },
+  {
+   "target_flagged": 0.2,
+   "catch": 0.2925764192139738,
+   "false_alarm": 0.12177121771217712,
+   "flagged": 0.2,
+   "false_done_among_accepted": 0.405
+  },
+  {
+   "target_flagged": 0.25,
+   "catch": 0.35807860262008734,
+   "false_alarm": 0.15867158671586715,
+   "flagged": 0.25,
+   "false_done_among_accepted": 0.392
+  },
+  {
+   "target_flagged": 0.3,
+   "catch": 0.4104803493449782,
+   "false_alarm": 0.2066420664206642,
+   "flagged": 0.3,
+   "false_done_among_accepted": 0.38571428571428573
+  },
+  {
+   "target_flagged": 0.4,
+   "catch": 0.5283842794759825,
+   "false_alarm": 0.2915129151291513,
+   "flagged": 0.4,
+   "false_done_among_accepted": 0.36
+  },
+  {
+   "target_flagged": 0.5,
+   "catch": 0.62882096069869,
+   "false_alarm": 0.39114391143911437,
+   "flagged": 0.5,
+   "false_done_among_accepted": 0.34
+  }
+ ],
+ "overclaims_rule_based": {
+  "all": {
+   "not fixed": {
+    "runs": 229,
+    "overclaim": 24,
+    "not_overclaim": 205,
+    "done_claim": {
+     "supported": 181,
+     "contradicted": 16,
+     "unsupported": 29,
+     "not claimed": 3
+    }
+   },
+   "fixed": {
+    "runs": 271,
+    "overclaim": 19,
+    "not_overclaim": 252,
+    "done_claim": {
+     "supported": 241,
+     "contradicted": 9,
+     "unsupported": 20,
+     "not claimed": 1
+    }
+   }
+  },
+  "older": {
+   "not fixed": {
+    "runs": 0,
+    "overclaim": 0,
+    "not_overclaim": 0,
+    "done_claim": {}
+   },
+   "fixed": {
+    "runs": 0,
+    "overclaim": 0,
+    "not_overclaim": 0,
+    "done_claim": {}
+   }
+  },
+  "newer": {
+   "not fixed": {
+    "runs": 229,
+    "overclaim": 24,
+    "not_overclaim": 205,
+    "done_claim": {
+     "supported": 181,
+     "contradicted": 16,
+     "unsupported": 29,
+     "not claimed": 3
+    }
+   },
+   "fixed": {
+    "runs": 271,
+    "overclaim": 19,
+    "not_overclaim": 252,
+    "done_claim": {
+     "supported": 241,
+     "contradicted": 9,
+     "unsupported": 20,
+     "not claimed": 1
+    }
+   }
+  }
+ },
+ "judges": {
+  "notes": "pending: no answers yet (calling a judge needs an approved API budget)",
+  "task_diff": "pending: no answers yet (calling a judge needs an approved API budget)"
+ },
+ "cost": {
+  "donecheck_api_usd_per_run": 0.0,
+  "donecheck_seconds_per_run": 0.0026254705820174425,
+  "agent_usd_per_run_mean": 0.2971903488
+ },
+ "provenance": {
+  "commit": "3bf483cc68fc93899651ec3800e43dd3a309d0c9",
+  "uncommitted_changes": false,
+  "python": "3.13.18",
+  "numpy": "2.5.5",
+  "scikit_learn": "1.9.1"
+ }
+}
