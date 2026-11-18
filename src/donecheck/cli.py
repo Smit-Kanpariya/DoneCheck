@@ -51,6 +51,18 @@ PLAIN = {
 }
 
 
+def explain(artifact: dict, facts: dict, top: int = 4) -> dict:
+    """The verdict for one run's facts, with the facts that pushed the score most each way."""
+    p, push = score(artifact, facts)
+    by_fact = defaultdict(float)
+    for feature, value in push.items():
+        by_fact[feature.split("=")[0]] += value  # the one-hot parts of a fact add up
+    ranked = sorted(by_fact.items(), key=lambda kv: -abs(kv[1]))
+    return {"flag": p >= artifact["threshold"], "score": p, "threshold": artifact["threshold"],
+            "towards_flag": [PLAIN[f](facts[f]) for f, v in ranked if v > 0][:top],
+            "towards_accept": [PLAIN[f](facts[f]) for f, v in ranked if v < 0][:top]}
+
+
 @app.command()
 def verify(run_file: Path, model: Path = Path(evaluation.MODEL_PATH), top: int = 4) -> None:
     """Accept or flag one run's 'done'. Exit code: 0 accept, 1 flag, 2 no done claim to check."""
@@ -58,24 +70,50 @@ def verify(run_file: Path, model: Path = Path(evaluation.MODEL_PATH), top: int =
     if not run.submitted:
         typer.echo(f"No done claim to check: the run ended with {run.exit_status}, not a submission.")
         raise typer.Exit(2)
-    artifact = json.loads(model.read_text())
-    facts = check_run(run)
-    p, push = score(artifact, facts)
-    by_fact = defaultdict(float)
-    for feature, value in push.items():
-        by_fact[feature.split("=")[0]] += value
-    flag = p >= artifact["threshold"]
-    typer.echo(f"DoneCheck: {'FLAG' if flag else 'ACCEPT'}  score {p:.2f}, threshold {artifact['threshold']:.2f}")
+    v = explain(json.loads(model.read_text()), check_run(run), top)
+    typer.echo(f"DoneCheck: {'FLAG' if v['flag'] else 'ACCEPT'}  score {v['score']:.2f}, threshold {v['threshold']:.2f}")
     typer.echo("The score ranks how likely this 'done' is false. It is a fitted logistic-regression output, not a\n"
                "calibrated probability: on models it was not fitted on, its calibration drifts (docs/report.md).")
-    ranked = sorted(by_fact.items(), key=lambda kv: -abs(kv[1]))
-    for label, sign in (("Towards flag", 1), ("Towards accept", -1)):
-        lines = [PLAIN[f](facts[f]) for f, v in ranked if v * sign > 0][:top]
-        if lines:
-            typer.echo(f"{label}:\n" + "\n".join(f"  - {line}" for line in lines))
+    for label, key in (("Towards flag", "towards_flag"), ("Towards accept", "towards_accept")):
+        if v[key]:
+            typer.echo(f"{label}:\n" + "\n".join(f"  - {line}" for line in v[key]))
     typer.echo("Limits: the checks read commands and outputs, not the code; a script counts as passed when it\n"
                "exits cleanly; claims are found by keywords.")
-    raise typer.Exit(1 if flag else 0)
+    raise typer.Exit(1 if v["flag"] else 0)
+
+
+@app.command()
+def reproduce(skip_download: bool = False) -> None:
+    """Download the data, recompute every result into eval/reproduced/ and compare with the committed ones.
+
+    The building results and model are rebuilt from scratch; GLM-4.5 is rescored with the committed,
+    frozen model (the committed final test itself is never rerun in place)."""
+    if not skip_download:
+        fetching.main("building", "data")
+        fetching.main("final", "data_final")
+    committed_building = json.loads(Path(evaluation.RESULTS, "building.json").read_text())
+    committed_final = json.loads(Path(evaluation.RESULTS, "final_glm45.json").read_text())
+    frozen_model = evaluation.MODEL_PATH
+    evaluation.RESULTS, evaluation.MODEL_PATH = "eval/reproduced", "eval/reproduced/donecheck-v1.json"
+    building = evaluation.building()
+    evaluation.MODEL_PATH = frozen_model
+    final = evaluation.final()
+    pairs = {
+        "building: mean leave-one-model-out AUROC": (committed_building["donecheck_leave_one_model_out"]["mean_fold_auroc"],
+                                                     building["donecheck_leave_one_model_out"]["mean_fold_auroc"]),
+        "building: threshold": (committed_building["final_model"]["threshold"], building["final_model"]["threshold"]),
+        "GLM-4.5: catch at the frozen threshold": (committed_final["donecheck"]["fixed_threshold"]["catch"],
+                                                   final["donecheck"]["fixed_threshold"]["catch"]),
+        "GLM-4.5: false alarms at the frozen threshold": (committed_final["donecheck"]["fixed_threshold"]["false_alarm"],
+                                                          final["donecheck"]["fixed_threshold"]["false_alarm"]),
+        "GLM-4.5: AUROC": (committed_final["donecheck"]["auroc"], final["donecheck"]["auroc"]),
+    }
+    same = True
+    for name, (old, new) in pairs.items():
+        ok = abs(old - new) < 1e-9
+        same &= ok
+        typer.echo(f"{'same' if ok else 'DIFFERENT'}  {name}: committed {old:.6f}, reproduced {new:.6f}")
+    raise typer.Exit(0 if same else 1)
 
 
 @app.command()

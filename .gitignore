@@ -15,3 +15,4 @@ data/
 # Re-created by the code: run files, judge prompts (they quote run files)
 data_final/
 eval/judges/
+eval/reproduced/

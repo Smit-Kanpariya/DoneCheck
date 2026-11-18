@@ -1,0 +1,161 @@
+{
+ "caught": {
+  "runs": 30,
+  "empty change": 0.433,
+  "a check passed after the last edit": 0.433,
+  "no check after the last edit": 0.4,
+  "repository tests after the last edit": 0.033,
+  "failed check passed after the fix": 0.2,
+  "a claim contradicted": 0.067,
+  "an edited file never opened": 0.0,
+  "last check result": {
+   "failed": 7,
+   "passed": 10,
+   "none": 12,
+   "error": 1
+  },
+  "median steps": 54
+ },
+ "missed": {
+  "runs": 199,
+  "empty change": 0.0,
+  "a check passed after the last edit": 0.915,
+  "no check after the last edit": 0.075,
+  "repository tests after the last edit": 0.176,
+  "failed check passed after the fix": 0.372,
+  "a claim contradicted": 0.075,
+  "an edited file never opened": 0.005,
+  "last check result": {
+   "passed": 174,
+   "none": 15,
+   "failed": 9,
+   "error": 1
+  },
+  "median steps": 40
+ },
+ "false alarm": {
+  "runs": 2,
+  "empty change": 0.0,
+  "a check passed after the last edit": 0.5,
+  "no check after the last edit": 0.5,
+  "repository tests after the last edit": 0.0,
+  "failed check passed after the fix": 0.5,
+  "a claim contradicted": 0.0,
+  "an edited file never opened": 0.0,
+  "last check result": {
+   "failed": 1,
+   "none": 1
+  },
+  "median steps": 108
+ },
+ "accepted, fixed": {
+  "runs": 269,
+  "empty change": 0.0,
+  "a check passed after the last edit": 0.937,
+  "no check after the last edit": 0.059,
+  "repository tests after the last edit": 0.212,
+  "failed check passed after the fix": 0.335,
+  "a claim contradicted": 0.063,
+  "an edited file never opened": 0.0,
+  "last check result": {
+   "passed": 241,
+   "failed": 9,
+   "none": 16,
+   "timeout": 1,
+   "error": 2
+  },
+  "median steps": 28
+ },
+ "examples": {
+  "caught (highest scores)": [
+   {
+    "instance_id": "django__django-13128",
+    "score": 0.998425,
+    "steps": 71,
+    "last_check_result": "none",
+    "submit_note": "THOUGHT: Perfect! Now I can see the clean diff that shows only my actual fix. The changes are minimal and targeted:\n\n1. I added a `_resolve_output_field` method to the `CombinedExpression` class\n2. This method handles temporal subtraction (DateTimeField - DateTimeField) by returning a DurationField\n"
+   },
+   {
+    "instance_id": "django__django-12708",
+    "score": 0.996731,
+    "steps": 44,
+    "last_check_result": "none",
+    "submit_note": "THOUGHT: Perfect! The diff shows exactly the changes I made to fix the issue. The fix adds logic to the `_delete_composed_index` method to explicitly exclude unique constraints when we're trying to delete an index constraint. This prevents the method from finding both the unique constraint and the i"
+   },
+   {
+    "instance_id": "django__django-13033",
+    "score": 0.995079,
+    "steps": 48,
+    "last_check_result": "passed",
+    "submit_note": "THOUGHT: Perfect! Now I can see the exact change that was made to fix the issue. The modification is in the `find_ordering_name` method in `django/db/models/sql/compiler.py` at line 730. \n\nThe fix adds an additional condition to prevent Django from appending the related model's default ordering when"
+   },
+   {
+    "instance_id": "django__django-15252",
+    "score": 0.994785,
+    "steps": 61,
+    "last_check_result": "none",
+    "submit_note": "THOUGHT: Perfect! Now the diff only shows the actual fix to the MigrationRecorder. The changes are:\n\n1. Added `from django.db import router` import\n2. Modified `ensure_schema()` to check `router.allow_migrate()` before creating the table\n3. Modified `record_applied()` to check if the table exists be"
+   },
+   {
+    "instance_id": "django__django-13121",
+    "score": 0.994028,
+    "steps": 14,
+    "last_check_result": "none",
+    "submit_note": "THOUGHT: I can see that the git diff is showing my changes to the `convert_durationfield_value` method in the base operations.py file. The fix I implemented wraps the decimal operations in a local context and clears the flags to prevent the `InvalidOperation` error that was occurring when duration e"
+   }
+  ],
+  "false alarm": [
+   {
+    "instance_id": "sphinx-doc__sphinx-9281",
+    "score": 0.916253,
+    "steps": 108,
+    "last_check_result": "none",
+    "submit_note": "THOUGHT: Perfect! My fix is working correctly for all types of enums:\n\n1. `MyEnum.ValueA` - Regular enum \u2713\n2. `MyIntEnum.One` - IntEnum \u2713  \n3. `MyAutoEnum.FIRST` - Auto enum \u2713\n4. `MyFlag.A` - Flag enum \u2713\n\nAnd it's also working correctly for non-enum values:\n5. `None` - None default \u2713\n6. `'default_st"
+   },
+   {
+    "instance_id": "django__django-12858",
+    "score": 0.803325,
+    "steps": 38,
+    "last_check_result": "failed",
+    "submit_note": "THOUGHT: Interesting! The system check now passes (which is what we wanted to fix), but there's an issue when actually trying to use the ordering in queries. The error shows that there's a problem with the lookup resolution in the query compiler.\n\nThe error message is: `Cannot resolve keyword 'isnul"
+   }
+  ],
+  "missed (lowest scores)": [
+   {
+    "instance_id": "django__django-14011",
+    "score": 0.214043,
+    "steps": 25,
+    "last_check_result": "passed",
+    "submit_note": "THOUGHT: Excellent! The test passed successfully. This confirms that our fix is working correctly. The ThreadedWSGIServer is now properly handling database connections - after processing a request in a separate thread, the database connection remains in a usable state. This means our `process_reques"
+   },
+   {
+    "instance_id": "sympy__sympy-20428",
+    "score": 0.188621,
+    "steps": 40,
+    "last_check_result": "passed",
+    "submit_note": "THOUGHT: Excellent! All comprehensive tests are passing. Let me summarize what I've accomplished:\n\n1. **Identified the Issue**: The problem was in the `dup_clear_denoms` function in `densetools.py`. After multiplying a polynomial by a common denominator, the result wasn't being stripped of leading z"
+   },
+   {
+    "instance_id": "sphinx-doc__sphinx-7748",
+    "score": 0.160771,
+    "steps": 40,
+    "last_check_result": "passed",
+    "submit_note": "THOUGHT: Perfect! All tests are passing and the implementation is working exactly as intended. The feature successfully:\n\n1. **Handles overloaded methods**: Detects multiple consecutive signatures and combines them with \" | \" separator\n2. **Maintains backwards compatibility**: Single signatures work"
+   },
+   {
+    "instance_id": "matplotlib__matplotlib-26291",
+    "score": 0.148432,
+    "steps": 30,
+    "last_check_result": "passed",
+    "submit_note": "THOUGHT: Excellent! All tests are passing, including the specific test for `AnchoredLocatorBase.__call__`. This confirms that my fix is working correctly and doesn't break any existing functionality.\n\nLet me summarize what I've done:\n\n1. **Identified the issue**: The problem was in the `AnchoredLoca"
+   },
+   {
+    "instance_id": "pytest-dev__pytest-5631",
+    "score": 0.147676,
+    "steps": 31,
+    "last_check_result": "passed",
+    "submit_note": "THOUGHT: Perfect! The fix is correctly implemented. Let me summarize what I've done:\n\n1. **Identified the problem**: The issue was in the `num_mock_patch_args` function in `src/_pytest/compat.py` at line 71, where `p.new in sentinels` was being evaluated. When `p.new` is a numpy array, this comparis"
+   }
+  ]
+ }
+}
