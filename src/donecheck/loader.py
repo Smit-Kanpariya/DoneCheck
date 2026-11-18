@@ -71,6 +71,8 @@ class Run:
     wording: str  # "older" or "newer"
     resolved: bool | None  # None when the results file has no entry for this bug
     steps: tuple[Step, ...]
+    cost: float | None = None  # the model's cost for this run in dollars (info.model_stats)
+    api_calls: int | None = None
 
 
 def load_labels(model_dir: str | Path) -> dict[str, bool]:
@@ -107,8 +109,11 @@ def load_run(path: str | Path, labels: dict[str, bool]) -> Run:
         raise RunFileError(f"{path}: missing field {err}") from err
     if not isinstance(submission, str):
         raise RunFileError(f"{path}: info.submission is {type(submission).__name__}, not text")
+    stats = info.get("model_stats") or {}
 
     return Run(
+        cost=stats.get("instance_cost"),
+        api_calls=stats.get("api_calls"),
         instance_id=instance_id,
         model=model_name(path),
         agent_version=agent_version,
