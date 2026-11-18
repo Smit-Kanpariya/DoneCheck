@@ -185,3 +185,20 @@ def test_final_scores_read_each_checker_at_its_fixed_threshold(tmp_path, monkeyp
     assert out["task_diff"]["judge"]["threshold"] is None and out["task_diff"]["judge"]["fixed_threshold"]["catch"] == 0.0
     assert out["notes"]["donecheck_same_runs"]["fixed_threshold"] == {"catch": 0.25, "false_alarm": 0.25, "flagged": 0.25}
     assert out["notes"]["seconds_per_run"] == 2.0 and out["notes"]["max_input_tokens"] == 107
+
+
+def test_judge_run_rests_between_chunks(prompts, monkeypatch):
+    now, rests, judge = [0.0], [], FakeJudge()
+
+    def slow_judge(endpoint, model, prompt):  # each call takes 5 minutes
+        now[0] += 300
+        return judge(endpoint, model, prompt)
+
+    def rest(seconds):
+        rests.append(seconds)
+        now[0] += seconds
+    monkeypatch.setattr(judging.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(judging.time, "sleep", rest)
+    judging.run("building", "notes", "http://localhost:1/v1", "m", local=True, send=slow_judge, work_minutes=9, rest_minutes=10)
+    assert rests == [600]  # 3 calls of 5 minutes: one 10-minute rest, after the second
+    assert [a["seconds"] for a in judging.judges.read_answers("eval/judges/answers_notes_building.jsonl").values()] == [300] * 3

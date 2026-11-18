@@ -4,7 +4,8 @@ run: send each prompt to an OpenAI-compatible chat endpoint (a local server such
   LM Studio, or a paid API) and append the replies to eval/judges/answers_<judge>_<split>.jsonl.
   It will not start without a spending rule: local=True for a free local server, or prices per
   million tokens plus a max_usd cap, checked before every call. It skips runs already answered, so
-  it resumes after an interruption.
+  it resumes after an interruption. With work_minutes and rest_minutes it works in chunks, pausing
+  after each stretch of work so a laptop running a local model can cool down.
 score: each judge next to DoneCheck on the same runs, from the saved answers and the committed
   predictions; writes eval/results/judges_<split>.json. On the building sample it also finds each
   judge's threshold: the lowest that flags at most 5% of fixed runs, the rule DoneCheck's threshold
@@ -58,7 +59,8 @@ def post(endpoint: str, model: str, prompt: str) -> tuple[str, int, int]:
 
 
 def run(split: str, judge: str, endpoint: str, model: str, local: bool = False, usd_per_mtok_in: float | None = None,
-        usd_per_mtok_out: float | None = None, max_usd: float | None = None, send=post) -> dict:
+        usd_per_mtok_out: float | None = None, max_usd: float | None = None, send=post,
+        work_minutes: float | None = None, rest_minutes: float = 0) -> dict:
     if not local and None in (usd_per_mtok_in, usd_per_mtok_out, max_usd):
         raise SystemExit("set local=True for a free local server, or both prices and max_usd for a paid one")
     if split == "final":
@@ -69,11 +71,14 @@ def run(split: str, judge: str, endpoint: str, model: str, local: bool = False, 
     out = JUDGE_DIR / f"answers_{judge}_{split}.jsonl"
     done = set(judges.read_answers(out)) if out.exists() else set()
     spent = sum(a.get("cost_usd") or 0 for a in judges.read_answers(out).values()) if out.exists() else 0.0
-    sent = 0
+    sent, chunk_started = 0, time.monotonic()
     with out.open("a", encoding="utf-8") as fh:
         for p in prompts:
             if (p["model"], p["instance_id"]) in done:
                 continue
+            if work_minutes and time.monotonic() - chunk_started >= 60 * work_minutes:
+                time.sleep(60 * rest_minutes)  # cool down between chunks
+                chunk_started = time.monotonic()
             if not local:  # worst case for this call: about 1 token per 3 characters in, the full reply out
                 worst = len(p["prompt"]) / 3 * usd_per_mtok_in / 1e6 + MAX_REPLY_TOKENS * usd_per_mtok_out / 1e6
                 if spent + worst > max_usd:

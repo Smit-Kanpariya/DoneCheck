@@ -187,10 +187,12 @@ def judges_prompts(split: str) -> None:
 @judges_app.command("run")
 def judges_run(split: str, judge: str, endpoint: str, model: str, local: bool = False,
                usd_per_mtok_in: float | None = None, usd_per_mtok_out: float | None = None,
-               max_usd: float | None = None) -> None:
+               max_usd: float | None = None, work_minutes: float | None = None, rest_minutes: float = 0) -> None:
     """Send one judge's prompts to an OpenAI-compatible endpoint (key from JUDGE_API_KEY). Needs --local
-    for a free local server, or both prices and --max-usd. Resumes where it stopped."""
-    typer.echo(json.dumps(judging.run(split, judge, endpoint, model, local, usd_per_mtok_in, usd_per_mtok_out, max_usd)))
+    for a free local server, or both prices and --max-usd. Resumes where it stopped. --work-minutes and
+    --rest-minutes run it in chunks with cool-down pauses."""
+    typer.echo(json.dumps(judging.run(split, judge, endpoint, model, local, usd_per_mtok_in, usd_per_mtok_out, max_usd,
+                                      work_minutes=work_minutes, rest_minutes=rest_minutes)))
 
 
 @judges_app.command("freeze")
