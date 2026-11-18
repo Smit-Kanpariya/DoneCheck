@@ -34,3 +34,19 @@ def test_verify_has_nothing_to_check_without_a_submission(tmp_path):
     path = write_fake_run(tmp_path, exit_status="LimitsExceeded", steps=[bash("ls"), ran("a.py\n"), reply("")])
     result = runner.invoke(app, ["verify", str(path)])
     assert result.exit_code == 2 and "No done claim to check" in result.output
+
+
+def test_verify_cannot_check_a_missing_file_or_a_bad_model(tmp_path):
+    assert runner.invoke(app, ["verify", str(tmp_path / "missing.traj.json")]).exit_code == 3
+    bad_model = tmp_path / "model.json"
+    bad_model.write_text("{", encoding="utf-8")
+    result = runner.invoke(app, ["verify", str(write_fake_run(tmp_path)), "--model", str(bad_model)])
+    assert result.exit_code == 3 and "Cannot check" in result.output
+
+
+def test_verify_reads_a_run_file_outside_the_folder_layout(tmp_path):
+    loose = tmp_path / "loose.json"
+    loose.write_text(write_fake_run(tmp_path, steps=[bash("sed -i 's/a/b/' pkg/x.py"), ran(""),
+                                                     bash(SUBMIT, "THOUGHT: Done."), reply("")]).read_text())
+    result = runner.invoke(app, ["verify", str(loose)])
+    assert result.exit_code == 1 and result.output.startswith("DoneCheck: FLAG"), result.output

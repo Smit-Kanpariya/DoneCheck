@@ -5,11 +5,11 @@ evidence that the fix works? DoneCheck reads the record with fixed rules and sco
 run. The scores are checked against the official hidden tests of SWE-bench Verified, which the
 checker never sees.
 
-**Result on a model it never saw** (GLM-4.5, 500 runs, scored once, at a threshold frozen on
-building data): DoneCheck flagged **13.1%** of the 229 false "done" claims (95% interval 8.9% to
-17.6%). It flagged **0.7%** of the 271 fixed runs (interval 0.0% to 1.9%). It cost $0 in API fees
-and took about 2.6 ms of computing per run. Trusting the agent catches 0%. AUROC was 0.665 (0.620 to
-0.713). The two AI-judge baselines are built and their prompts are frozen, but they **have not been
+**Result on a model it never saw** (GLM-4.5, 500 runs on the same 500 bugs as the building models,
+scored once, at a threshold frozen on building data): DoneCheck flagged **13.1%** of the 229 false
+"done" claims (95% interval 8.9% to 17.6%). It flagged **0.7%** of the 271 fixed runs (interval
+0.0% to 1.9%). It cost $0 in API fees and took about 2.6 ms of computing per run. Trusting the agent
+catches 0%. AUROC was 0.665 (0.620 to 0.713). The two AI-judge baselines are built and their prompts are frozen, but they **have not been
 run**: calling them costs money, and no budget has been approved yet.
 
 All numbers below come from `eval/results/*.json` and can be rebuilt with `uv run donecheck reproduce`.
@@ -53,12 +53,16 @@ All numbers below come from `eval/results/*.json` and can be rebuilt with `uv ru
    its score is ≥ 0.787. That is the lowest threshold at which at most 5% of fixed runs are flagged,
    using the building models' leave-one-model-out scores, i.e. scores for models each fit had not
    seen. The rule was picked over the 5% point of in-sample scores by testing both on the model left
-   out (nested, building data only):
+   out (nested, building data only; `eval/results/threshold_rules.json`, from
+   `python -m donecheck.analysis threshold-rules`):
 
    | Rule | Mean false alarms on the model left out | Models above 5% |
    |---|---|---|
    | in-sample scores | 8.5% | 3 of 5 |
    | leave-one-model-out scores (chosen) | 3.0% | 1 of 5 |
+
+   The rule was chosen on these same five folds, so the fold-level catch and false-alarm numbers in
+   section 3 are slightly optimistic for it. GLM-4.5 is the independent check.
 
 4. **Metrics** (`scoring.py`).
    - **Operating point.** The catch rate and false-alarm rate are read at real thresholds. Nothing
@@ -99,7 +103,8 @@ All numbers below come from `eval/results/*.json` and can be rebuilt with `uv ru
   Leaving out the 21 runs whose last note gave up: AUROC 0.692.
 - **New model and new bugs.** Every model tried the same 500 bugs, so leave-one-model-out still
   trains on the held-out model's bugs. Splitting the bugs into 5 folds as well, so that the fit sees
-  neither the model nor the bugs it scores, lowers AUROC by at most 0.008 per model (0.679 to 0.714).
+  neither the model nor the bugs it scores, changes AUROC by −0.007 to +0.002 per model (0.679 to
+  0.714).
   GLM-4.5 also ran the same 500 bugs, so the final test means "new model, same bugs".
 - **Which checks matter.** Mean fold AUROC with each group of facts removed (all facts: 0.704):
 
@@ -181,8 +186,8 @@ accepted.
 - **Caught.** Nearly half of the caught runs submitted an empty change. In two of them
   (`django__django-12708`, `django__django-13128`), the last note says the diff shows the fix, but
   the final command was a bare `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT` without
-  `git add -A && git diff --cached`, which hands in nothing. The rest had no check after their last
-  edit, or a failing one.
+  `git add -A && git diff --cached`, which hands in nothing. Of all 30 caught runs, 12 had no
+  check after the last edit, 7 a failing last check, 1 an error, and 10 a passing one.
 - **Missed.** The misses look like fixed runs in the record: in 91.5% of them a check the agent
   wrote passed after its last edit. The record shows the agent's own checks passing, not whether
   those checks test what the hidden tests test. This is the main limit of evidence read from the
@@ -190,9 +195,10 @@ accepted.
 - **False alarms.** Both were long runs (38 and 108 steps): one with no check after its last edit,
   one whose last check failed.
 
-I read the profiles of all 231 flagged or missed runs and the last notes of 12 of them (5 caught,
-2 false alarms, 5 missed). I did not read 50 misses and 50 false alarms one by one: there are only
-2 false alarms.
+How this was read: the fact profiles of all 500 runs by group (`final_glm45_errors.json`), plus the
+last notes of 12 runs: the 5 highest-scoring caught, both false alarms and the 5 lowest-scoring
+missed. The plan asked for up to 50 misses and 50 false alarms read one by one. There are only 2
+false alarms, and the misses were not each read by hand.
 
 ## 6. Overclaims versus honest failures (rule-based, not human)
 
@@ -220,14 +226,18 @@ claim is only a little more common in failed runs than in fixed ones.
   - `judges.py` holds the two prompts (version `judges-v1`, frozen). Neither prompt ever includes the
     hidden tests, the correct fix or a result.
   - `eval/judge_sample_200.tsv` lists the 200-run building sample (40 per model, drawn without
-    outcomes, none from the labelling sample), and `donecheck judge-prompts` writes the exact
-    prompts.
+    outcomes, none from the labelling sample), and `donecheck judges prompts building` writes the
+    exact prompts (`judges prompts final` for GLM-4.5).
   - To finish this baseline:
     1. Approve a model and a spending cap.
-    2. Send each prompt and save the replies as `eval/judges/answers_<judge>_<split>.jsonl`. Each line
-       holds model, instance_id, answer, judge_model and cost_usd.
-    3. Rerun the evaluation. It then reports each judge next to DoneCheck on the same runs.
-- **Nothing is pushed or published.** The work is committed on the local branch `stage-1`.
+    2. Send the prompts with `donecheck judges run <split> <judge> <endpoint> <model>`, for any
+       OpenAI-compatible endpoint. Use `--local` for a free local server, or both prices and
+       `--max-usd`, which are checked before every call. Replies go to
+       `eval/judges/answers_<judge>_<split>.jsonl`.
+    3. `donecheck judges score <split>` reports each judge next to DoneCheck on the same runs.
+  - No local model runtime was installed on the build machine, so not even a free local run was
+    possible (status `BLOCKED_BUDGET`).
+- **Not merged or released.** The work is on the branch `stage-1`; `main` is unchanged.
 
 ## 8. Limits
 

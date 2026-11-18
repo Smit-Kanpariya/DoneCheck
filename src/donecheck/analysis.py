@@ -55,7 +55,39 @@ def profile(data_dir: str = "data_final") -> dict:
     return out
 
 
+def threshold_rules(data_dir: str = "data") -> dict:
+    """The pre-freeze comparison behind the threshold rule (docs/report.md, section 2), on building
+    data only. For each building model left out: rule A takes the 5% point of the training models'
+    in-sample scores, rule B (model.choose_threshold) the 5% point of their leave-one-model-out
+    scores; both are applied to the model left out."""
+    from donecheck.evaluate import arrays, table
+    from donecheck.model import choose_threshold, fit, matrix
+    from donecheck.scoring import operating_point, threshold_at
+
+    rows, _ = table(data_dir)
+    y, _, models, _ = arrays(rows)
+    _, X = matrix([r["facts"] for r in rows])
+    out, held_out = {}, sorted(set(models.tolist()))
+    for held in held_out:
+        train, test = models != held, models == held
+        model = fit(X[train], y[train])
+        s = model.predict_proba(X[test])[:, 1]
+        a = threshold_at(y[train], model.predict_proba(X[train])[:, 1])
+        b = choose_threshold(X[train], y[train], models[train])
+        out[held] = {"in_sample": operating_point(y[test], s, a), "leave_one_model_out": operating_point(y[test], s, b)}
+    for rule in ("in_sample", "leave_one_model_out"):
+        fa = [out[held][rule]["false_alarm"] for held in held_out]
+        out[f"{rule}_mean_false_alarm"] = sum(fa) / len(fa)
+        out[f"{rule}_models_above_5"] = sum(x > 0.05 for x in fa)
+    Path("eval/results/threshold_rules.json").write_text(json.dumps(out, indent=1) + "\n")
+    return out
+
+
 if __name__ == "__main__":
+    import sys
+    if sys.argv[1:] == ["threshold-rules"]:
+        print(json.dumps(threshold_rules(), indent=1))
+        raise SystemExit
     result = profile()
     for group in GROUPS.values():
         print(group, json.dumps(result[group]))

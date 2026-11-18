@@ -14,7 +14,7 @@ blockquote{margin:8px 0;padding-left:12px;border-left:3px solid var(--line);colo
 a{color:inherit} .small{font-size:13px;color:var(--muted)}
 </style></head><body><main>
 <h1>DoneCheck</h1><p class=lead>Is a coding agent's "done" backed by evidence in its run record? Scored against SWE-bench Verified's hidden tests.</p>
-<p class=big>On 500 runs from GLM-4.5, a model it never saw, DoneCheck flagged <b>13.1%</b> of the 229 false "done" claims
+<p class=big>On 500 runs from GLM-4.5, a model it never saw (on the same 500 bugs), DoneCheck flagged <b>13.1%</b> of the 229 false "done" claims
 (95% interval 8.9% to 17.6%) while flagging <b>0.7%</b> of fixed runs (up to 1.9%), for $0 in API fees and about 2.6 ms per run.
 Trusting the agent catches 0%.</p>
 <p>The threshold was frozen on building data to aim for at most 5% false alarms on a new model; on GLM-4.5 it turned out stricter.

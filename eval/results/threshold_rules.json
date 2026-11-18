@@ -1,0 +1,66 @@
+{
+ "deepseek-v3.2-reasoner": {
+  "in_sample": {
+   "catch": 0.29292929292929293,
+   "false_alarm": 0.13666666666666666,
+   "flagged": 0.19879518072289157
+  },
+  "leave_one_model_out": {
+   "catch": 0.11616161616161616,
+   "false_alarm": 0.02666666666666667,
+   "flagged": 0.06224899598393574
+  }
+ },
+ "devstral-2512": {
+  "in_sample": {
+   "catch": 0.33175355450236965,
+   "false_alarm": 0.040892193308550186,
+   "flagged": 0.16875
+  },
+  "leave_one_model_out": {
+   "catch": 0.2985781990521327,
+   "false_alarm": 0.011152416356877323,
+   "flagged": 0.1375
+  }
+ },
+ "gpt-5-nano": {
+  "in_sample": {
+   "catch": 0.32450331125827814,
+   "false_alarm": 0.04597701149425287,
+   "flagged": 0.22268907563025211
+  },
+  "leave_one_model_out": {
+   "catch": 0.24834437086092714,
+   "false_alarm": 0.011494252873563218,
+   "flagged": 0.16176470588235295
+  }
+ },
+ "gpt-oss-120b": {
+  "in_sample": {
+   "catch": 0.39058171745152354,
+   "false_alarm": 0.11538461538461539,
+   "flagged": 0.31771894093686354
+  },
+  "leave_one_model_out": {
+   "catch": 0.27146814404432135,
+   "false_alarm": 0.08461538461538462,
+   "flagged": 0.2219959266802444
+  }
+ },
+ "kimi-k2-instruct": {
+  "in_sample": {
+   "catch": 0.40562248995983935,
+   "false_alarm": 0.0867579908675799,
+   "flagged": 0.2564102564102564
+  },
+  "leave_one_model_out": {
+   "catch": 0.3293172690763052,
+   "false_alarm": 0.0182648401826484,
+   "flagged": 0.18376068376068377
+  }
+ },
+ "in_sample_mean_false_alarm": 0.085135695544333,
+ "in_sample_models_above_5": 3,
+ "leave_one_model_out_mean_false_alarm": 0.030438712139028046,
+ "leave_one_model_out_models_above_5": 1
+}

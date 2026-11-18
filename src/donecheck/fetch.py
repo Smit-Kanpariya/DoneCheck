@@ -1,6 +1,6 @@
 """Download the public run files DoneCheck uses (they are not stored in this repository).
 
-    python -m donecheck.fetch building data        # the five building models, about 806 MiB
+    python -m donecheck.fetch building data        # the five building models, about 800 MiB
     python -m donecheck.fetch final data_final     # GLM-4.5, the one-time final test
 
 Per model it saves the leaderboard's per_instance_details.json and metadata.yaml (GitHub), its
@@ -9,6 +9,7 @@ disk with the listed size are kept, so it can be rerun after a failure. Every do
 against the size in the storage listing, and every run file is parsed once at the end.
 """
 
+import http.client
 import json
 import re
 import sys
@@ -60,10 +61,11 @@ def download(job: tuple[str, Path, int | None]) -> str:
             data = get(url)
             if size is not None and len(data) != size:
                 raise OSError(f"got {len(data)} bytes, the listing says {size}")
-            path.with_suffix(".part").write_bytes(data)
-            path.with_suffix(".part").replace(path)
+            part = path.with_name(path.name + ".part")
+            part.write_bytes(data)
+            part.replace(path)
             return "new"
-        except OSError as err:
+        except (OSError, http.client.HTTPException) as err:  # incl. a body cut short
             if attempt == 3:
                 raise RuntimeError(f"{url}: {err}") from err
             time.sleep(2 * (attempt + 1))
@@ -91,10 +93,13 @@ def main(which: str, dest: str) -> None:
         results = list(pool.map(download, jobs))
     print({r: results.count(r) for r in set(results)})
     for entry in ENTRIES[which]:
+        listed = sum(1 for _, path, _ in jobs if path.parent == dest_dir / entry / "trajs")
         runs = sorted((dest_dir / entry / "trajs").glob("*.traj.json"))
+        if len(runs) != listed:
+            raise SystemExit(f"{entry}: {len(runs)} run files on disk, but the listing has {listed}")
         for path in runs:
             json.loads(path.read_bytes())  # raises if a file is cut short
-        print(f"{entry}: {len(runs)} run files, all parse")
+        print(f"{entry}: {len(runs)} run files, as listed, all parse")
 
 
 if __name__ == "__main__":

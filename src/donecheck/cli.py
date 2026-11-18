@@ -1,12 +1,16 @@
 """The donecheck command.
 
     donecheck verify RUN.traj.json          accept or flag one submitted run, with its evidence
+    donecheck reproduce                     download the data, rebuild every result and compare
+    donecheck labels check|report           the hand-labelling sheet; its analysis once complete
+    donecheck judges prompts|score SPLIT    AI-judge prompts; judge scores once answers exist
     donecheck fetch building|final DIR      download the public run files
     donecheck evaluate building|final       rebuild eval/results/ (final runs once)
-    donecheck judge-prompts                 write the AI-judge prompts for the 200-run sample
 """
 
 import json
+import shutil
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 
@@ -14,6 +18,7 @@ import typer
 
 from donecheck import evaluate as evaluation
 from donecheck import fetch as fetching
+from donecheck import judging, labels
 from donecheck.checks import check_run
 from donecheck.loader import load_run
 from donecheck.model import score
@@ -63,14 +68,32 @@ def explain(artifact: dict, facts: dict, top: int = 4) -> dict:
             "towards_accept": [PLAIN[f](facts[f]) for f, v in ranked if v < 0][:top]}
 
 
+def load_any(run_file: Path):
+    """Load a run file from anywhere. The loader reads the model name from the folder layout
+    <date>_mini-v<version>_<model>/trajs/, so a file outside it is read through a link in that layout."""
+    parent = run_file.resolve().parent
+    if parent.name == "trajs" and "_mini-v" in parent.parent.name:
+        return load_run(run_file, labels={})
+    with tempfile.TemporaryDirectory() as tmp:
+        link = Path(tmp, "00000000_mini-v0_unknown", "trajs", run_file.name)
+        link.parent.mkdir(parents=True)
+        link.symlink_to(run_file.resolve())
+        return load_run(link, labels={})
+
+
 @app.command()
 def verify(run_file: Path, model: Path = Path(evaluation.MODEL_PATH), top: int = 4) -> None:
-    """Accept or flag one run's 'done'. Exit code: 0 accept, 1 flag, 2 no done claim to check."""
-    run = load_run(run_file, labels={})
-    if not run.submitted:
-        typer.echo(f"No done claim to check: the run ended with {run.exit_status}, not a submission.")
-        raise typer.Exit(2)
-    v = explain(json.loads(model.read_text()), check_run(run), top)
+    """Accept or flag one run's 'done'. Exit code: 0 accept, 1 flag, 2 no done claim, 3 cannot check."""
+    try:
+        run = load_any(run_file)
+        artifact = json.loads(model.read_text())
+        if not run.submitted:
+            typer.echo(f"No done claim to check: the run ended with {run.exit_status}, not a submission.")
+            raise typer.Exit(2)
+        v = explain(artifact, check_run(run), top)
+    except (OSError, ValueError, KeyError) as err:  # missing file, bad JSON, wrong shape, wrong model file
+        typer.echo(f"Cannot check {run_file}: {err}", err=True)
+        raise typer.Exit(3) from None
     typer.echo(f"DoneCheck: {'FLAG' if v['flag'] else 'ACCEPT'}  score {v['score']:.2f}, threshold {v['threshold']:.2f}")
     typer.echo("The score ranks how likely this 'done' is false. It is a fitted logistic-regression output, not a\n"
                "calibrated probability: on models it was not fitted on, its calibration drifts (docs/report.md).")
@@ -93,11 +116,15 @@ def reproduce(skip_download: bool = False) -> None:
         fetching.main("final", "data_final")
     committed_building = json.loads(Path(evaluation.RESULTS, "building.json").read_text())
     committed_final = json.loads(Path(evaluation.RESULTS, "final_glm45.json").read_text())
-    frozen_model = evaluation.MODEL_PATH
-    evaluation.RESULTS, evaluation.MODEL_PATH = "eval/reproduced", "eval/reproduced/donecheck-v1.json"
-    building = evaluation.building()
-    evaluation.MODEL_PATH = frozen_model
-    final = evaluation.final()
+    shutil.rmtree("eval/reproduced", ignore_errors=True)  # its own output from an earlier run
+    saved = evaluation.RESULTS, evaluation.MODEL_PATH
+    try:
+        evaluation.RESULTS, evaluation.MODEL_PATH = "eval/reproduced", "eval/reproduced/donecheck-v1.json"
+        building = evaluation.building()
+        evaluation.MODEL_PATH = saved[1]  # GLM-4.5 is scored with the committed, frozen model
+        final = evaluation.final()
+    finally:
+        evaluation.RESULTS, evaluation.MODEL_PATH = saved
     pairs = {
         "building: mean leave-one-model-out AUROC": (committed_building["donecheck_leave_one_model_out"]["mean_fold_auroc"],
                                                      building["donecheck_leave_one_model_out"]["mean_fold_auroc"]),
@@ -129,7 +156,44 @@ def evaluate(which: str) -> None:
     typer.echo(f"wrote {evaluation.RESULTS}/")
 
 
-@app.command()
-def judge_prompts() -> None:
-    """Draw the 200-run judge sample and write both judges' prompts to eval/judges/building/."""
-    evaluation.judge_prompts()
+labels_app = typer.Typer(no_args_is_help=True, help="The hand-labelling study (human labels only).")
+judges_app = typer.Typer(no_args_is_help=True, help="The AI-judge baselines (frozen prompts judges-v1).")
+app.add_typer(labels_app, name="labels")
+app.add_typer(judges_app, name="judges")
+
+
+@labels_app.command("check")
+def labels_check() -> None:
+    """Progress and format of labels/claims.tsv. Reads only the label sheets. Exit 1 on a problem."""
+    status = labels.check()
+    typer.echo(f"{status['rows']} rows; runs with labels: {status['labelled_runs']}; complete: {status['complete']}")
+    for problem in status["problems"]:
+        typer.echo(f"  {problem}")
+    raise typer.Exit(1 if status["problems"] else 0)
+
+
+@labels_app.command("report")
+def labels_report() -> None:
+    """Once all 100 runs are labelled: agreement with the rules, overclaims, self-agreement."""
+    typer.echo(json.dumps(labels.report(), indent=1))
+
+
+@judges_app.command("prompts")
+def judges_prompts(split: str) -> None:
+    """Write the frozen prompts: 'building' (the 200-run sample) or 'final' (every GLM-4.5 run)."""
+    evaluation.judge_prompts() if split == "building" else judging.write_final_prompts()
+
+
+@judges_app.command("run")
+def judges_run(split: str, judge: str, endpoint: str, model: str, local: bool = False,
+               usd_per_mtok_in: float | None = None, usd_per_mtok_out: float | None = None,
+               max_usd: float | None = None) -> None:
+    """Send one judge's prompts to an OpenAI-compatible endpoint (key from JUDGE_API_KEY). Needs --local
+    for a free local server, or both prices and --max-usd. Resumes where it stopped."""
+    typer.echo(json.dumps(judging.run(split, judge, endpoint, model, local, usd_per_mtok_in, usd_per_mtok_out, max_usd)))
+
+
+@judges_app.command("score")
+def judges_score(split: str) -> None:
+    """Score each judge that has answers next to DoneCheck on the same runs."""
+    typer.echo(json.dumps(judging.score(split), indent=1))

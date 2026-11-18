@@ -1,0 +1,16 @@
+name: tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      # The run files are not in the repository, so the tests that need them skip here;
+      # `uv run donecheck reproduce` downloads them and rebuilds every number.
+      - run: uv run pytest -q

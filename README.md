@@ -9,8 +9,8 @@ is false, and is tested against the benchmark's hidden tests, which it never see
 
 ## Result
 
-The model never saw GLM-4.5. Its 500 runs were scored once, at a threshold frozen beforehand on the
-other five models:
+The model never saw GLM-4.5, though GLM-4.5 ran the same 500 bugs. Its 500 runs were scored once, at
+a threshold frozen beforehand on the other five models:
 
 | | Caught (of 229 false "done") | False alarms (of 271 fixed) | AUROC | API cost per run |
 |---|---|---|---|---|
@@ -54,7 +54,8 @@ Towards accept:
 This GLM-4.5 run made 15 code edits and then submitted with a bare `echo` of the submit word, which
 hands in an empty change. The hidden tests mark it not fixed.
 
-`verify` exits 0 for accept, 1 for flag, and 2 when the run never submitted. The score is a fitted
+`verify` exits 0 for accept, 1 for flag, 2 when the run never submitted, and 3 when it cannot read
+the run or the model file. The score is a fitted
 logistic-regression output, not a calibrated probability.
 
 ## Rebuild every number
@@ -70,6 +71,7 @@ uv run pytest -q
 | `src/donecheck/model.py`, `scoring.py` | The DoneCheck score; AUROC, catch rate, error bars |
 | `src/donecheck/evaluate.py`, `judges.py` | Building and final evaluation; the AI-judge prompts |
 | `src/donecheck/cli.py`, `fetch.py`, `demo.py` | The command, the download, the demo page |
+| `src/donecheck/labels.py`, `judging.py` | The hand-labelling checks and analysis; running and scoring the AI judges |
 | `models/donecheck-v1.json`, `eval/freeze.json` | The frozen model and what was frozen |
 | `eval/results/` | Every reported number, and the predictions |
 | `docs/claims.md`, `labels/` | What counts as a claim; the hand-labelling sample |

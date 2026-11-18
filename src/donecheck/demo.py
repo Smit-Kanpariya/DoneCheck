@@ -1,8 +1,7 @@
 """Write demo/index.html: the final-test numbers and real GLM-4.5 runs DoneCheck caught, missed and
 falsely flagged. `python -m donecheck.demo` (needs data_final/ and eval/results/).
 
-Examples are picked by fixed rules, not by hand: per group, the highest- and lowest-scoring runs, and
-for caught runs one with an empty change and one without. Each quotes at most 240 characters of the
+Examples are picked by fixed rules, not by hand (see pick). Each quotes at most 240 characters of the
 agent's last note and links to the full run file on the public bucket, which is not copied here.
 """
 
@@ -24,25 +23,33 @@ def pct(x: float) -> str:
 
 
 def pick(cases: dict[str, list[dict]]) -> list[tuple[str, dict]]:
+    """Per group, by fixed rules: caught with and without an empty change, the lowest-scoring miss and
+    a miss whose repository tests ran after the last edit, every false alarm (up to 3), and the
+    lowest-scoring accepted fix. Rules that match nothing are skipped; no run is shown twice."""
     by_score = {g: sorted(v, key=lambda c: -c["score"]) for g, v in cases.items()}
-    caught = by_score["caught"]
-    chosen = [("caught", next(c for c in caught if not c["facts"]["submission_empty"])),
-              ("caught", next(c for c in caught if c["facts"]["submission_empty"])),
-              ("missed", by_score["missed"][-1]),
-              ("missed", next(c for c in by_score["missed"] if c["facts"]["tests_after_last_edit"] > 0)),
-              *[("false alarm", c) for c in by_score["false alarm"]],
-              ("accepted, fixed", by_score["accepted, fixed"][-1])]
+    wanted = [("caught", [c for c in by_score["caught"] if not c["facts"]["submission_empty"]][:1]),
+              ("caught", [c for c in by_score["caught"] if c["facts"]["submission_empty"]][:1]),
+              ("missed", by_score["missed"][-1:]),
+              ("missed", [c for c in by_score["missed"] if c["facts"]["tests_after_last_edit"] > 0][:1]),
+              ("false alarm", by_score["false alarm"][:3]),
+              ("accepted, fixed", by_score["accepted, fixed"][-1:])]
+    chosen, seen = [], set()
+    for group, found in wanted:
+        for case in found:
+            if case["id"] not in seen:
+                seen.add(case["id"])
+                chosen.append((group, case))
     return chosen
 
 
 def card(group: str, case: dict, entry: str) -> str:
     v = case["verdict"]
-    url = f"{S3}/bash-only/{entry}/trajs/{case['id']}/{case['id']}.traj.json"
+    url = html.escape(f"{S3}/bash-only/{entry}/trajs/{case['id']}/{case['id']}.traj.json", quote=True)
     lines = "".join(f"<li class=f>{html.escape(t)}</li>" for t in v["towards_flag"][:3])
     lines += "".join(f"<li class=a>{html.escape(t)}</li>" for t in v["towards_accept"][:2])
     note = case["note"][:240] + ("…" if len(case["note"]) > 240 else "")
     return (f"<article class='{group.split(',')[0].replace(' ', '-')}'><header><b>{html.escape(group)}</b>"
-            f"<code>{case['id']}</code></header>"
+            f"<code>{html.escape(case['id'])}</code></header>"
             f"<p class=v>{'FLAG' if v['flag'] else 'ACCEPT'} · score {v['score']:.2f} (threshold {v['threshold']:.2f})"
             f" · hidden tests: {'not fixed' if case['false_done'] else 'fixed'}</p><ul>{lines}</ul>"
             f"<blockquote>{html.escape(note)}</blockquote><a href='{url}'>full run file</a></article>")
@@ -94,7 +101,7 @@ blockquote{{margin:8px 0;padding-left:12px;border-left:3px solid var(--line);col
 a{{color:inherit}} .small{{font-size:13px;color:var(--muted)}}
 </style></head><body><main>
 <h1>DoneCheck</h1><p class=lead>Is a coding agent's "done" backed by evidence in its run record? Scored against SWE-bench Verified's hidden tests.</p>
-<p class=big>On {runs} runs from GLM-4.5, a model it never saw, DoneCheck flagged <b>{catch}</b> of the {false_done} false "done" claims
+<p class=big>On {runs} runs from GLM-4.5, a model it never saw (on the same 500 bugs), DoneCheck flagged <b>{catch}</b> of the {false_done} false "done" claims
 (95% interval {catch_lo} to {catch_hi}) while flagging <b>{fa}</b> of fixed runs (up to {fa_hi}), for $0 in API fees and about {ms} ms per run.
 Trusting the agent catches 0%.</p>
 <p>The threshold was frozen on building data to aim for at most 5% false alarms on a new model; on GLM-4.5 it turned out stricter.
