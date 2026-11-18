@@ -1,0 +1,29 @@
+{
+ "frozen_at": "2026-11-17T22:27:30-0400",
+ "commit": "9c1ca3d077039fc11f928aa4d10c13f62d320af9",
+ "uncommitted_changes": false,
+ "python": "3.13.18",
+ "numpy": "2.5.5",
+ "scikit_learn": "1.9.1",
+ "files_sha256": {
+  "src/donecheck/loader.py": "52e76063e5deea9d5e5ab9a375aa789e536ee649058773f620e19e1cfba26001",
+  "src/donecheck/checks.py": "dcdd36d7f0a7587b5ef0b96367340a664cf38c24a6fcaea262bde4465a8894a6",
+  "src/donecheck/model.py": "b3cda362b299c96d653e83224083750071b2fe35aa41f15928b652ecc503632a",
+  "src/donecheck/scoring.py": "739c90b55559365c8edf9897e99db0fca953ba1ad1557d20895f78ffc1c43e4c",
+  "src/donecheck/evaluate.py": "a5e453a84fa6ec38dc915d05ea6fd5c04b96b9f6055167cf2517befc8ea7a63d",
+  "src/donecheck/judges.py": "4c11c9af14e43e86f7bc4c509ecdf96bc14e18c3d1a0caa2b021d5cdef2db3b2",
+  "models/donecheck-v1.json": "be90f9f759241f5ed1f35de01a9323a29b183aca4f0e9377978af9d5604fe817"
+ },
+ "threshold": 0.7872814420115419,
+ "threshold_rule": "5% false-alarm point of the building models' leave-one-model-out scores (model.choose_threshold)",
+ "false_alarm_target": 0.05,
+ "bootstrap": {
+  "resamples": 2000,
+  "seed": 20261117,
+  "grouped_by": "bug id"
+ },
+ "judge_prompt_version": "judges-v1",
+ "final_test_entries": [
+  "20250822_mini-v1.9.1_glm-4.5"
+ ]
+}
