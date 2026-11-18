@@ -214,7 +214,7 @@ claim is only a little more common in failed runs than in fixed ones.
 
 - **Human labels: none yet.** `labels/claims.tsv` is empty. The overclaim numbers above come from
   rules. No model-made labels were produced, and none are presented as human. Still to do: the
-  owner's 100-run labels, a hand check of the evidence checks on 30 labelled runs, and the blind
+  100-run hand labels, a hand check of the evidence checks on 30 labelled runs, and the blind
   relabel of runs 1 to 30 (for self-agreement). The sample and the blind setup are unchanged.
 - **AI-judge baselines: built, not run.**
   - `judges.py` holds the two prompts (version `judges-v1`, frozen). Neither prompt ever includes the

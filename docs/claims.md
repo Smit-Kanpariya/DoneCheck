@@ -78,8 +78,7 @@ the rules in `checks.py` never go in them.
 
 ## 6. Decisions (2026-11-17)
 
-Made by Claude in the unattended loop, at the owner's request, before any run was labelled. The owner
-can still change them before labelling run 1.
+Made before any run was labelled. They can still be changed before labelling run 1, and not after.
 
 1. **"Couldn't finish" means not claimed (kept).** The older wording lets an agent submit when stuck,
    so such a submit is a report of failure, not a claim of success. Counting it as contradicted would
